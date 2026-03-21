@@ -101,15 +101,4 @@ def phase_portrait(
     ax.quiver(X, Y, U, V, norm)
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
-
-
-    x0 = []
-    y0 = []
-    for t in np.linspace(-2, 5, 50):
-        x0.append(np.exp(-t))
-        y0.append(np.exp(-2*t))
-    ax.plot(x0,y0)
-
-
-
     plt.show()
