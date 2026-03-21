@@ -4,14 +4,11 @@ import matplotlib.pyplot as plt
 #Define a function f: R^2 -> R^2. The differential equation will be taken as
 #   (x', y') = f(x, y)
 
-def phase_portrait(
+def vector_field(
         f, xrange: tuple[float, float]=(-1.0, 1.0), yrange: tuple[float, float]=(-1.0, 1.0),
-        vector_spacing_x: float | None=None, vector_spacing_y: float | None=None,
-        num_steps: int=5000, step_size: float=0.001,
-        reverse: bool=False, clear: bool=True
-                   ):
+        vector_spacing_x: float | None=None, vector_spacing_y: float | None=None
+                 ):
     
-
     f = np.vectorize(f)
 
     xmin0, xmax0 = xrange
@@ -33,9 +30,78 @@ def phase_portrait(
     ymax = ymax0 - ymargin
 
     norm = np.sqrt(f(X, Y)[0]**2 + f(X, Y)[1]**2)
-    norm[norm==0] += 0.01
+    norm[norm == 0] += min(norm[norm > 0])
     U = f(X, Y)[0]/norm
     V = f(X, Y)[1]/norm
+
+    return X, Y, U, V, norm
+
+def phase_portrait(
+        f, x0: float=0.0, y0: float=0.0,
+        xrange: tuple[float, float]=(-1.0, 1.0), yrange: tuple[float, float]=(-1.0, 1.0),
+        num_steps: int=5000, step_size: float=0.001,
+        reverse: bool=True
+                    ):
+    
+    f = np.vectorize(f)
+
+    xmin, xmax = xrange
+    ymin, ymax = yrange
+    
+    lx, ly = [x0], [y0]
+    rlx, rly = [x0], [y0]
+
+    i = 0
+    x, y = x0, y0
+    t = 0
+
+    while i < num_steps and 2 * xmin < x < 2 * xmax and 2 * ymin < y < 2 * ymax:
+        x += step_size * f(x, y, t)[0]
+        y += step_size * f(x, y, t)[1]
+        t += step_size
+        lx.append(x)
+        ly.append(y)
+        i += 1
+
+    if reverse:
+
+        i = 0
+        x, y = x0, y0
+    
+        while i > - num_steps and 2 * xmin < x < 2 * xmax and 2 * ymin < y < 2 * ymax:
+            x -= step_size * f(x, y, t)[0]
+            y -= step_size * f(x, y, t)[1]
+            t -= step_size
+            rlx.append(x)
+            rly.append(y)
+            i -= 1
+    
+    return (lx, ly), (rlx, rly)
+
+
+def phase_portrait_interactive(
+        f, xrange: tuple[float, float]=(-1.0, 1.0), yrange: tuple[float, float]=(-1.0, 1.0),
+        vector_spacing_x: float | None=None, vector_spacing_y: float | None=None,
+        num_steps: int=5000, step_size: float=0.001,
+        reverse: bool=True, clear: bool=True
+                   ):
+    
+    def g(x, y):
+        return f(x, y, t=0)
+    
+    vector_args = vector_field(g, xrange, yrange, vector_spacing_x, vector_spacing_y)
+
+
+    xmin0, xmax0 = xrange
+    ymin0, ymax0 = yrange
+
+    xmargin = 0.05 * (xmax0 - xmin0)
+    ymargin = 0.05 * (ymax0 - ymin0)
+
+    xmin = xmin0 + xmargin
+    xmax = xmax0 - xmargin
+    ymin = ymin0 + ymargin
+    ymax = ymax0 - ymargin
 
     def pos_picker(self, mouseevent):
         props = dict(pickx=mouseevent.xdata, picky=mouseevent.ydata)
@@ -53,30 +119,6 @@ def phase_portrait(
 
         x0 = event.pickx
         y0 = event.picky
-        lx, ly = [x0], [y0]
-        rlx, rly = [x0], [y0]
-
-        i = 0
-        x, y = x0, y0
-
-        while i < num_steps and 2 * xmin < x < 2 * xmax and 2 * ymin < y < 2 * ymax:
-            x += step_size * f(x, y)[0]
-            y += step_size * f(x, y)[1]
-            lx.append(x)
-            ly.append(y)
-            i += 1
-
-        if reverse:
-
-            i = 0
-            x, y = x0, y0
-        
-            while i > - num_steps and 2 * xmin < x < 2 * xmax and 2 * ymin < y < 2 * ymax:
-                x -= step_size * f(x, y)[0]
-                y -= step_size * f(x, y)[1]
-                rlx.append(x)
-                rly.append(y)
-                i -= 1
 
         if clear:
             if reverse:
@@ -91,14 +133,18 @@ def phase_portrait(
                 except:
                     pass
         
-        line = ax.plot(lx, ly, color='red')
+        line_args = phase_portrait(f, x0, y0, xrange, yrange, num_steps, step_size, reverse)[0]
+        rline_args = phase_portrait(f, x0, y0, xrange, yrange, num_steps, step_size, reverse)[1]
+
+        line = ax.plot(*line_args, color='red')
 
         if reverse:
-            rline = ax.plot(rlx, rly, color='red', linestyle='--')
+            rline = ax.plot(*rline_args, color='red', linestyle='--')
+        
         plt.show()
 
     fig.canvas.mpl_connect('pick_event', onpick)
-    ax.quiver(X, Y, U, V, norm)
+    ax.quiver(*vector_args)
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
     plt.show()
