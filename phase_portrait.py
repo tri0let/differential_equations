@@ -21,14 +21,6 @@ def vector_field(
 
     X, Y = np.meshgrid(np.arange(xmin0, xmax0, vector_spacing_x), np.arange(ymin0, ymax0, vector_spacing_y))
 
-    xmargin = 0.05 * (np.max(X) - np.min(X))
-    ymargin = 0.05 * (np.max(Y) - np.min(Y))
-
-    xmin = xmin0 + xmargin
-    xmax = xmax0 - xmargin
-    ymin = ymin0 + ymargin
-    ymax = ymax0 - ymargin
-
     norm = np.sqrt(f(X, Y)[0]**2 + f(X, Y)[1]**2)
     norm[norm == 0] += min(norm[norm > 0])
     U = f(X, Y)[0]/norm
@@ -37,8 +29,8 @@ def vector_field(
     return X, Y, U, V, norm
 
 def phase_portrait(
-        f, x0: float=0.0, y0: float=0.0,
-        xrange: tuple[float, float]=(-1.0, 1.0), yrange: tuple[float, float]=(-1.0, 1.0),
+        f, x0: float=0.0, y0: float=0.0, t0: float=0.0,
+        xrange: tuple[float, float]=(-100.0, 100.0), yrange: tuple[float, float]=(-100.0, 100.0),
         num_steps: int=5000, step_size: float=0.001,
         reverse: bool=True
                     ):
@@ -47,13 +39,16 @@ def phase_portrait(
 
     xmin, xmax = xrange
     ymin, ymax = yrange
+
+    if x0 < xmin or x0 > xmax or y0 < ymin or y0 > ymax:
+        raise ValueError(f'Initial condition outside specified range: x between {xmin} and {xmax}, y between {ymin} and {ymax}.')
     
     lx, ly = [x0], [y0]
     rlx, rly = [x0], [y0]
 
     i = 0
     x, y = x0, y0
-    t = 0
+    t = t0
 
     while i < num_steps and 2 * xmin < x < 2 * xmax and 2 * ymin < y < 2 * ymax:
         x += step_size * f(x, y, t)[0]
@@ -67,8 +62,9 @@ def phase_portrait(
 
         i = 0
         x, y = x0, y0
+        t = t0
     
-        while i > - num_steps and 2 * xmin < x < 2 * xmax and 2 * ymin < y < 2 * ymax:
+        while i > -num_steps and 2 * xmin < x < 2 * xmax and 2 * ymin < y < 2 * ymax:
             x -= step_size * f(x, y, t)[0]
             y -= step_size * f(x, y, t)[1]
             t -= step_size
@@ -76,7 +72,7 @@ def phase_portrait(
             rly.append(y)
             i -= 1
     
-    return (lx, ly), (rlx, rly)
+    return [lx, ly],[rlx, rly]
 
 
 def phase_portrait_interactive(
@@ -133,8 +129,8 @@ def phase_portrait_interactive(
                 except:
                     pass
         
-        line_args = phase_portrait(f, x0, y0, xrange, yrange, num_steps, step_size, reverse)[0]
-        rline_args = phase_portrait(f, x0, y0, xrange, yrange, num_steps, step_size, reverse)[1]
+        line_args = phase_portrait(f=f, x0=x0, y0=y0, t0=0, xrange=xrange, yrange=yrange, num_steps=num_steps, step_size=step_size, reverse=reverse)[0]
+        rline_args = phase_portrait(f, x0, y0, t0=0, xrange=xrange, yrange=yrange, num_steps=num_steps, step_size=step_size, reverse=reverse)[1]
 
         line = ax.plot(*line_args, color='red')
 
@@ -147,4 +143,5 @@ def phase_portrait_interactive(
     ax.quiver(*vector_args)
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
+    ax.set_title('Click anywhere to set an initial condition')
     plt.show()
