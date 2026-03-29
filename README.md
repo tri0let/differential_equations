@@ -18,3 +18,4 @@ See `examples.py` for more details and examples of how the functions are used. S
 - Add functionality for plotting other things over the interactive plot (right now it only exists within the function)
 - Functionality for matrices
 - Add 3D!
+- Fix bug in `phase_portrait` where the method for calculating backwards trajectories results in a kink at the initial condition
